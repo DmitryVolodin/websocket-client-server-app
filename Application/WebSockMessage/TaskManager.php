@@ -1,12 +1,17 @@
 <?php
 namespace Application\WebSockMessage;
 
+use Workerman\Connection\ConnectionInterface;
+
 class TaskManager
 {
     public $taskMap = [];
     public $connectionMap = [];
 
-    public function register($taskId, $clientId, $connection)
+    /*
+     * Register client and task
+     */
+    public function register($taskId, $clientId, ConnectionInterface $connection)
     {
         if (!array_key_exists($clientId, $this->taskMap)) {
             $this->taskMap[$clientId] = [];
@@ -20,19 +25,11 @@ class TaskManager
         $this->connectionMap[$connection->id] = $clientId . '_' . $taskId;
     }
 
-    public function getTasks($clientId = null)
-    {
-        if ($clientId !== null) {
-            if (!array_key_exists($clientId, $this->taskMap)) {
-                throw new \Exception('Client does not register');
-            }
-
-            return $this->taskMap[$clientId];
-        } else {
-            return $this->taskMap;
-        }
-    }
-
+    /*
+     * Unregister client and task by connection
+     *
+     * if there are more than one connection for the task, you need to call this method for each open connection
+     */
     public function unregister($connection)
     {
         if (!array_key_exists($connection->id, $this->connectionMap)) {
@@ -53,6 +50,28 @@ class TaskManager
         }
     }
 
+    /*
+     * Get list of client tasks
+     */
+    public function getTasks($clientId = null)
+    {
+        if ($clientId !== null) {
+            if (!array_key_exists($clientId, $this->taskMap)) {
+                throw new \Exception('Client does not register');
+            }
+
+            return $this->taskMap[$clientId];
+        } else {
+            return $this->taskMap;
+        }
+    }
+
+    /**
+     * @param array $command
+     * @param array $params
+     *
+     * @return array - contains an element result with value: success or fail
+     */
     public function execCommand($command, $params)
     {
         switch($command[0]) {
